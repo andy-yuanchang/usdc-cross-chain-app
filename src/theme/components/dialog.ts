@@ -5,7 +5,7 @@ export const Dialog: ThemeOptions['components'] = {
     styleOverrides: {
       root: () => ({
         zIndex: 88
-      }),
-    },
-  },
+      })
+    }
+  }
 }

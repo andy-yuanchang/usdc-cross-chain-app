@@ -1,4 +1,4 @@
-import * as chains from 'viem/chains';
+import * as chains from 'viem/chains'
 import { customChains } from '@/constants/chains'
 
 export function getChain(chainId: number): chains.Chain | undefined {
@@ -6,11 +6,11 @@ export function getChain(chainId: number): chains.Chain | undefined {
   try {
     for (const chain of Object.values(chains)) {
       if (chain.id === chainId) {
-        return chain;
+        return chain
       }
     }
   } catch (error) {
-    throw new Error(`Chain with id ${chainId} not found`);
+    throw new Error(`Chain with id ${chainId} not found`)
   }
 }
 

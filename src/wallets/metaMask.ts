@@ -1,9 +1,9 @@
-import { addressAtom } from '@/atoms/wallet';
-import { Wallets, SupportedWallets } from '@/types/wallet';
-import { type Chain, createWalletClient, custom } from 'viem';
+import { addressAtom } from '@/atoms/wallet'
+import { Wallets, SupportedWallets } from '@/types/wallet'
+import { type Chain, createWalletClient, custom } from 'viem'
 import { DEFAULT_CHAIN } from '@/constants/chains'
 import { walletStore } from '@/atoms/store'
-import { getErrorMessage } from '@/utils';
+import { getErrorMessage } from '@/utils'
 
 class MetaMask implements Wallets {
   private _name: SupportedWallets
@@ -17,10 +17,12 @@ class MetaMask implements Wallets {
     try {
       this._walletClient = createWalletClient({
         chain: DEFAULT_CHAIN,
-        transport: custom(window.ethereum),
-      });
+        transport: custom(window.ethereum)
+      })
     } catch (error: unknown) {
-      throw new Error(`${this._name} initialization error, ${getErrorMessage(error)}`)
+      throw new Error(
+        `${this._name} initialization error, ${getErrorMessage(error)}`
+      )
     }
   }
 
@@ -34,10 +36,12 @@ class MetaMask implements Wallets {
     }
 
     try {
-      const [address] = await this._walletClient.requestAddresses();
+      const [address] = await this._walletClient.requestAddresses()
       walletStore.set(addressAtom, address)
     } catch (error: unknown) {
-      throw new Error(`${this._name} connecting error, ${getErrorMessage(error)}`)
+      throw new Error(
+        `${this._name} connecting error, ${getErrorMessage(error)}`
+      )
     }
   }
 
@@ -49,7 +53,9 @@ class MetaMask implements Wallets {
     try {
       await this._walletClient.switchChain({ id: chainId })
     } catch (error: unknown) {
-      throw new Error(`${this._name} switch to chain ${chainId}, ${getErrorMessage(error)}`)
+      throw new Error(
+        `${this._name} switch to chain ${chainId}, ${getErrorMessage(error)}`
+      )
     }
   }
 }

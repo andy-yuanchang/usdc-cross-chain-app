@@ -1,6 +1,6 @@
-import WalletConnector from "@/components/wallet/WalletConnector"
-import AppLayout from "@/layouts/AppLayout"
-import ErrorBoundary from "@/components/ErrorBoundary"
+import WalletConnector from '@/components/wallet/WalletConnector'
+import AppLayout from '@/layouts/AppLayout'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import { createTheme, ThemeProvider } from '@mui/material'
 import { theme } from '@/theme'
 

@@ -1,3 +1,1 @@
-export default function useAccount() {
-  
-}
+export default function useAccount() {}

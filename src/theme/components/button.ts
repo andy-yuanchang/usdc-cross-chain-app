@@ -6,7 +6,7 @@ export const Button: ThemeOptions['components'] = {
       root: () => ({
         background: '#3898FF',
         color: 'white'
-      }),
-    },
-  },
+      })
+    }
+  }
 }

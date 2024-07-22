@@ -13,7 +13,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import DialogContent from '@mui/material/DialogContent'
 import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/close'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { SUPPORTED_WALLETS } from '@/constants'
 import { SupportedWallets } from '@/types/wallet'
 import { useAtom } from 'jotai'
@@ -30,7 +30,8 @@ export default function WalletMenu({ open, onClose }: WalletMenuProps) {
   const { connect, connectionStatus, cancel } = useWallet()
   const [selectedWallet, setSelectedWallet] = useAtom(selectedWalletAtom)
   const walletImgPath = useMemo(() => {
-    return SUPPORTED_WALLETS.find(wallet => wallet.name === selectedWallet)?.imgPath
+    return SUPPORTED_WALLETS.find((wallet) => wallet.name === selectedWallet)
+      ?.imgPath
   }, [selectedWallet])
 
   useEffect(() => {
@@ -55,14 +56,15 @@ export default function WalletMenu({ open, onClose }: WalletMenuProps) {
 
   return (
     <Dialog onClose={handleClose} open={open} maxWidth="xs" fullWidth>
-      {connectionStatus === 'connecting' || connectionStatus === 'user-rejected' ? (
+      {connectionStatus === 'connecting' ||
+      connectionStatus === 'user-rejected' ? (
         <IconButton
           onClick={cancel}
           sx={{
             position: 'absolute',
             left: 8,
             top: 10,
-            color: (theme) => theme.palette.grey[500],
+            color: (theme) => theme.palette.grey[500]
           }}
         >
           <ArrowBackIcon />
@@ -76,22 +78,46 @@ export default function WalletMenu({ open, onClose }: WalletMenuProps) {
           position: 'absolute',
           right: 8,
           top: 10,
-          color: (theme) => theme.palette.grey[500],
+          color: (theme) => theme.palette.grey[500]
         }}
       >
         <CloseIcon />
       </IconButton>
       <DialogContent className="max-h-[454px] overflow-y-auto">
-        {connectionStatus === 'connecting' || connectionStatus === 'user-rejected' ? (
+        {connectionStatus === 'connecting' ||
+        connectionStatus === 'user-rejected' ? (
           <Box className="flex flex-col justify-center items-center min-h-[396px] text-center">
-            <Avatar src={walletImgPath} alt={`${selectedWallet} avatar`} variant="rounded" className="mb-2" />
-            <Typography variant="h2" fontSize="18px" lineHeight="24px" fontWeight="500" gutterBottom>
+            <Avatar
+              src={walletImgPath}
+              alt={`${selectedWallet} avatar`}
+              variant="rounded"
+              className="mb-2"
+            />
+            <Typography
+              variant="h2"
+              fontSize="18px"
+              lineHeight="24px"
+              fontWeight="500"
+              gutterBottom
+            >
               {`Opening ${selectedWallet} Wallet...`}
             </Typography>
-            <Typography variant="subtitle1" color="gray" fontSize="14px" lineHeight="18px" gutterBottom>
+            <Typography
+              variant="subtitle1"
+              color="gray"
+              fontSize="14px"
+              lineHeight="18px"
+              gutterBottom
+            >
               Confirm connection in the extension
             </Typography>
-            {connectionStatus === 'connecting' ? <CircularProgress color="inherit" sx={{ textAlign: 'center' }} /> : <Button variant="contained" color="primary" onClick={handleRetry}>Retry</Button>}
+            {connectionStatus === 'connecting' ? (
+              <CircularProgress color="inherit" sx={{ textAlign: 'center' }} />
+            ) : (
+              <Button variant="contained" color="primary" onClick={handleRetry}>
+                Retry
+              </Button>
+            )}
           </Box>
         ) : (
           <List className="min-h-[396px]">
@@ -99,7 +125,11 @@ export default function WalletMenu({ open, onClose }: WalletMenuProps) {
               <ListItem disableGutters key={name}>
                 <ListItemButton onClick={() => handleConnect(name)}>
                   <ListItemAvatar>
-                    <Avatar src={imgPath} alt={`${name} avatar`} variant="rounded" />
+                    <Avatar
+                      src={imgPath}
+                      alt={`${name} avatar`}
+                      variant="rounded"
+                    />
                   </ListItemAvatar>
                   <ListItemText primary={name} />
                 </ListItemButton>
@@ -109,5 +139,5 @@ export default function WalletMenu({ open, onClose }: WalletMenuProps) {
         )}
       </DialogContent>
     </Dialog>
-  );
+  )
 }
