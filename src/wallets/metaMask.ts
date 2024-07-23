@@ -1,9 +1,9 @@
-import { addressAtom } from '@/atoms/wallet'
+import { addressAtom, currentChainAtom } from '@/atoms/wallet'
 import { Wallets, SupportedWallets } from '@/types/wallet'
 import { type Chain, createWalletClient, custom } from 'viem'
 import { DEFAULT_CHAIN } from '@/constants/chains'
 import { walletStore } from '@/atoms/store'
-import { getErrorMessage } from '@/utils'
+import { getChain, getErrorMessage } from '@/utils'
 
 class MetaMask implements Wallets {
   private _name: SupportedWallets
@@ -52,6 +52,7 @@ class MetaMask implements Wallets {
 
     try {
       await this._walletClient.switchChain({ id: chainId })
+      walletStore.set(currentChainAtom, getChain(+chainId))
     } catch (error: unknown) {
       throw new Error(
         `${this._name} switch to chain ${chainId}, ${getErrorMessage(error)}`
