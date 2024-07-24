@@ -11,7 +11,7 @@ import {
 } from '@/constants'
 import { publicClient } from '@/services/publicClient'
 import { SupportedChainIds, SupportedChains } from '@/types/wallet'
-import { getChain, getErrorMessage, getWallet } from '@/utils'
+import { addressToBytes32, getChain, getErrorMessage, getWallet } from '@/utils'
 import { useSetAtom } from 'jotai'
 import { getContract, parseUnits } from 'viem'
 
@@ -57,6 +57,7 @@ export default function useTransaction() {
             `Error when approving the transaction, function 'approve' return null or undefined`
           )
         }
+        return response
       } catch (error: unknown) {
         setError(new Error(getErrorMessage(error)))
       }
@@ -91,21 +92,22 @@ export default function useTransaction() {
       }
     })
 
-    const response = await contract.write.depositForBurn([
-      amount,
-      CCTP_DOMAIN_ID[chainId],
-      address,
-      USDC_CONTRACT_ADDRESS_MAP[chainName]
-    ])
-
-    if (!response) {
-      throw new UnexpectedError(
-        `Error when transferring USDC, function 'depositForBurn' return null or undefined`
-      )
+    try {
+      const response = await contract.write.depositForBurn([
+        amount,
+        CCTP_DOMAIN_ID[chainId],
+        addressToBytes32(address),
+        USDC_CONTRACT_ADDRESS_MAP[chainName]
+      ])
+      if (!response) {
+        throw new UnexpectedError(
+          `Error when transferring USDC, function 'depositForBurn' return null or undefined`
+        )
+      }
+      return response
+    } catch (error: unknown) {
+      setError(new Error(getErrorMessage(error)))
     }
-
-    const { hash } = response
-    return response
   }
 
   return {

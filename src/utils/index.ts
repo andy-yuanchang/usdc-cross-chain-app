@@ -38,3 +38,11 @@ export function shortenAddress(address: Address | null) {
   }
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
+
+export function addressToBytes32(address: Address) {
+  return (
+    address.slice(0, 2) +
+    '000000000000000000000000' +
+    address.slice(2, address.length)
+  )
+}

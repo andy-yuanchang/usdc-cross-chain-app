@@ -15,6 +15,7 @@ import ConnectButton from '@/components/wallet/ConnectButton'
 import { transactionErrorAtom } from '@/atoms/transaction'
 import SnackbarContent from '@mui/material/SnackbarContent'
 import Button from '@mui/material/Button'
+import { getErrorMessage } from '@/utils'
 
 interface FormInputs {
   sourceChain: string
@@ -27,7 +28,7 @@ interface FormInputs {
 export default function TransferForm() {
   const currentWallet = useAtomValue(selectedWalletAtom)
   const [error, setError] = useAtom(transactionErrorAtom)
-  const { approve } = useTransaction()
+  const { approve, transfer } = useTransaction()
   const { account, currentChain } = useAccount()
   const { isConnected } = useWallet()
   const [loading, setLoading] = useState(false)
@@ -83,9 +84,11 @@ export default function TransferForm() {
   const onSubmit: SubmitHandler<FormInputs> = async (data) => {
     try {
       setLoading(true)
-      const response = await approve(currentWallet!, String(data.amount))
+      const approveTx = await approve(currentWallet!, String(data.amount))
+      const burnTx = await transfer(currentWallet!, String(data.amount))
+      console.log(burnTx)
     } catch (error: unknown) {
-      console.log(error)
+      setError(new Error(getErrorMessage(error)))
     } finally {
       setLoading(false)
     }
@@ -181,7 +184,7 @@ export default function TransferForm() {
       </div>
       {error ? (
         <SnackbarContent
-          className="mt-3"
+          className="mt-3 overflow-hidden whitespace-pre-wrap break-all"
           message={`${error.name}: ${error.message}`}
           variant="elevation"
           action={
