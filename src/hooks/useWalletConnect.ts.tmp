@@ -4,7 +4,7 @@ import { mainnet } from 'viem/chains'
 import { useAtom, useSetAtom } from 'jotai'
 import { connectingAtom, errorAtom, walletClientAtom, addressAtom, currentChainAtom } from '@/atoms/wallet'
 import type { WalletHooks } from '@/types/wallet'
-import { SUPPORTED_CHAINS, WALLET_CONNECT_PROJECT_ID } from '@/constants'
+import { SUPPORTED_CHAINS_DETAILS, WALLET_CONNECT_PROJECT_ID } from '@/constants'
 import { getChain } from '@/utils'
 
 interface WalletConnectParams {
@@ -23,7 +23,7 @@ export default function useWalletConnect({ onClose }: WalletConnectParams): Wall
       setConnecting(true);
       try {
         const provider = await EthereumProvider.init({
-          chains: [...SUPPORTED_CHAINS.map(chain => chain.id)],
+          chains: [...SUPPORTED_CHAINS_DETAILS.map(chain => chain.id)],
           projectId: WALLET_CONNECT_PROJECT_ID,
           showQrModal: true,
         } as any);

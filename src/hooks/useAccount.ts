@@ -1,19 +1,21 @@
-import { addressAtom, currentChainAtom } from "@/atoms/wallet"
-import { publicClient } from "@/services/publicClient"
-import { useAtomValue } from "jotai"
-import { useEffect, useState } from "react"
+import { addressAtom, currentChainAtom } from '@/atoms/wallet'
+import { publicClient } from '@/services/publicClient'
+import { useAtomValue } from 'jotai'
+import { useEffect, useState } from 'react'
+import { formatUnits } from 'viem'
 
 export default function useAccount() {
-  const [balance, setBalance] = useState<bigint>(BigInt(0))
+  const [balance, setBalance] = useState('0')
   const currentChain = useAtomValue(currentChainAtom)
   const account = useAtomValue(addressAtom)
 
   useEffect(() => {
     if (currentChain && account) {
-      (async () => {
+      ;(async () => {
         const val = await publicClient.getBalance(account)
         if (val) {
-          setBalance(val)
+          const usdc = formatUnits(val, 6)
+          setBalance(usdc.toString())
         }
       })()
     }
@@ -22,6 +24,7 @@ export default function useAccount() {
   return {
     currentChain,
     account,
-    balance
+    // TODO: Support multiple tokens
+    balance: `${balance} USDC`
   }
 }

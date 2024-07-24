@@ -1,25 +1,28 @@
-import { useState } from 'react'
-import type { TransactionStatus, WalletConnectionStatus } from '@/types/wallet'
-import { wallets } from '@/wallets'
-import { useAtom } from 'jotai'
-import { walletErrorAtom } from '@/atoms/wallet'
+import { useEffect, useState } from 'react'
+import type { WalletConnectionStatus } from '@/types/wallet'
+import { useAtom, useAtomValue } from 'jotai'
+import { addressAtom, walletErrorAtom } from '@/atoms/wallet'
 import {
   WalletConnectionError,
   WalletSwitchChainError
 } from '@/constants/errors'
-import { getErrorMessage } from '@/utils'
-import type { Chain, UserRejectedRequestError } from 'viem'
-
-function getWallet(name: string) {
-  return wallets.find((x) => x.name === name)
-}
+import { getErrorMessage, getWallet } from '@/utils'
+import type { Chain } from 'viem'
 
 export default function useWallet() {
+  const address = useAtomValue(addressAtom)
   const [error, setError] = useAtom(walletErrorAtom)
   const [connectionStatus, setConnectionStatus] =
-    useState<WalletConnectionStatus>('unconnected')
-  const [transactionStatus, setTransactionStatus] =
-    useState<TransactionStatus | null>(null)
+    useState<WalletConnectionStatus>('disconnected')
+
+  useEffect(() => {
+    if (address) {
+      setConnectionStatus('connected')
+    }
+    return () => {
+      setConnectionStatus('disconnected')
+    }
+  }, [address])
 
   const connect = async (name: string) => {
     const wallet = getWallet(name)
@@ -43,7 +46,7 @@ export default function useWallet() {
         setConnectionStatus('user-rejected')
         return
       }
-      setConnectionStatus('unconnected')
+      setConnectionStatus('disconnected')
       setError(new WalletConnectionError(getErrorMessage(error)))
     }
   }
@@ -66,11 +69,10 @@ export default function useWallet() {
 
   return {
     isConnected: connectionStatus === 'connected',
-    cancel: () => setConnectionStatus('unconnected'),
+    cancel: () => setConnectionStatus('disconnected'),
     connectionStatus,
     connect,
     switchChain,
-    transactionStatus,
     error
   }
 }

@@ -1,13 +1,24 @@
 import { SupportedWallets } from '@/types/wallet'
 import { atom } from 'jotai'
-import type { WalletClient, Address, Chain } from 'viem'
+import { atomWithStorage } from 'jotai/utils'
+import type { WalletClient, Address } from 'viem'
 
 export const walletClientAtom = atom<WalletClient | null>(null)
 
 export const addressAtom = atom<Address | null>(null)
 
-export const currentChainAtom = atom<Chain | null | undefined>(null)
+export const currentChainAtom = atomWithStorage<number | null>(
+  'currentChain',
+  null,
+  undefined,
+  { getOnInit: true }
+)
 
-export const selectedWalletAtom = atom<SupportedWallets | null>(null)
+export const selectedWalletAtom = atomWithStorage<SupportedWallets | null>(
+  'selectedWallet',
+  'Meta Mask',
+  undefined,
+  { getOnInit: true }
+)
 
 export const walletErrorAtom = atom<Error | null>(null)

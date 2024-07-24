@@ -1,15 +1,16 @@
 import { RouterProvider } from 'react-router-dom'
-import ErrorBoundary from '@/components/ErrorBoundary'
 import { createTheme, ThemeProvider } from '@mui/material'
 import { theme } from '@/theme'
 import { router } from '@/constants'
+import { Provider } from 'jotai'
+import { walletStore } from '@/atoms/store'
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <ThemeProvider theme={createTheme(theme)}>
+    <ThemeProvider theme={createTheme(theme)}>
+      <Provider store={walletStore}>
         <RouterProvider router={router} />
-      </ThemeProvider>
-    </ErrorBoundary>
+      </Provider>
+    </ThemeProvider>
   )
 }
