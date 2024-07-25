@@ -12,10 +12,15 @@ import { useAtom, useAtomValue } from 'jotai'
 import { selectedWalletAtom } from '@/atoms/wallet'
 import useWallet from '@/hooks/useWallet'
 import ConnectButton from '@/components/wallet/ConnectButton'
-import { transactionErrorAtom } from '@/atoms/transaction'
+import {
+  approvalStatusAtom,
+  transactionAtom,
+  transactionErrorAtom
+} from '@/atoms/transaction'
 import SnackbarContent from '@mui/material/SnackbarContent'
 import Button from '@mui/material/Button'
 import { getErrorMessage } from '@/utils'
+import { attestationClient } from '@/services/attestationClient'
 
 interface FormInputs {
   sourceChain: string
@@ -28,9 +33,17 @@ interface FormInputs {
 export default function TransferForm() {
   const currentWallet = useAtomValue(selectedWalletAtom)
   const [error, setError] = useAtom(transactionErrorAtom)
-  const { approve, transfer } = useTransaction()
+  const [transactionStatus, setTransactionStatus] = useAtom(transactionAtom)
+  const [approvalStatus, setApprovalStatus] = useAtom(approvalStatusAtom)
+  const {
+    approve,
+    getTransactionReceipt,
+    depositForBurn,
+    getMessageHash,
+    receiveMessage
+  } = useTransaction()
   const { account, currentChain } = useAccount()
-  const { isConnected } = useWallet()
+  const { isConnected, switchChain } = useWallet()
   const [loading, setLoading] = useState(false)
   const { register, handleSubmit, setValue, watch } = useForm<FormInputs>({
     defaultValues: {
@@ -49,7 +62,7 @@ export default function TransferForm() {
   const amount = watch('amount')
 
   useEffect(() => {
-    (async () => {
+    ;(async () => {
       if (account) {
         const [source, dest] = await Promise.allSettled([
           publicClient.getBalance(account!, +sourceChain),
@@ -78,18 +91,45 @@ export default function TransferForm() {
   }, [currentChain])
 
   const invalidAmount = useMemo(() => {
-    return !account || !Number(sourceBalance) || Number(amount) <= 0 || Number(amount) > Number(sourceBalance)
+    return (
+      !account ||
+      !Number(sourceBalance) ||
+      Number(amount) <= 0 ||
+      Number(amount) > Number(sourceBalance)
+    )
   }, [account, sourceBalance, amount])
 
   const onSubmit: SubmitHandler<FormInputs> = async (data) => {
     try {
+      setError(null)
       setLoading(true)
+      // step 1
+      setApprovalStatus('approving')
       const approveTx = await approve(currentWallet!, String(data.amount))
-      const burnTx = await transfer(currentWallet!, String(data.amount))
-      console.log(burnTx)
+      setApprovalStatus('waiting for the receipt')
+      const response = await getTransactionReceipt(approveTx!)
+      setApprovalStatus('approved')
+      // step 2
+      const burnTx = await depositForBurn(currentWallet!, String(data.amount))
+      // step 3
+      setApprovalStatus('waiting for the receipt')
+      const { messageHash, messageBytes } = await getMessageHash(burnTx!)
+      // step 4
+      setTransactionStatus('pending')
+      const attestationSignature =
+        await attestationClient.getAttestation(messageHash)
+      // step 5
+      await switchChain(currentWallet!, +data.destinationChain)
+      const receiveTxReceipt = await receiveMessage(currentWallet!, {
+        messageBytes,
+        attestationSignature
+      })
+      setTransactionStatus('confirmed')
     } catch (error: unknown) {
       setError(new Error(getErrorMessage(error)))
     } finally {
+      setTransactionStatus(null)
+      handleClose()
       setLoading(false)
     }
   }
@@ -108,11 +148,19 @@ export default function TransferForm() {
     setValue('destinationBalance', usdc.toString())
   }
 
+  const handleClose = () => {
+    setTransactionStatus(null)
+    setApprovalStatus(null)
+  }
+
   return (
     <>
       <div className="p-4 mx-auto flex flex-col items-center px-2 py-4 rounded-md bg-[rgb(34,34,48)] max-w-[500px] mt-10">
         <h1 className="text-white font-semibold capitalize mb-4">Transfer</h1>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 items-center w-full justify-between">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex flex-col gap-5 items-center w-full justify-between"
+        >
           <div className="w-full bg-[rgb(28,28,40)] rounded-md">
             <div className="flex justify-between items-center border-b-[rgb(28,28,40)] border-b-2 p-2">
               <div className="flex items-center gap-2">
@@ -131,10 +179,16 @@ export default function TransferForm() {
               </div>
             </div>
             <div className="flex justify-between items-center p-2">
-              <input {...register('amount')} className="w-full focus:border-0 outline-none bg-transparent text-[rgb(249,250,251)] font-bold" />
+              <input
+                {...register('amount')}
+                className="w-full focus:border-0 outline-none bg-transparent text-[rgb(249,250,251)] font-bold"
+              />
               <div className="flex gap-2">
                 <div className="h-6 w-6 rounded-full">
-                  <img src="https://assets.polygon.technology/tokenAssets/usdc.svg" className="w-full h-full" />
+                  <img
+                    src="https://assets.polygon.technology/tokenAssets/usdc.svg"
+                    className="w-full h-full"
+                  />
                 </div>
                 <span className="text-white font-bold">USDC</span>
               </div>
@@ -158,10 +212,17 @@ export default function TransferForm() {
               </div>
             </div>
             <div className="flex justify-between items-center p-2">
-              <input value={amount} className="w-full focus:border-0 outline-none bg-transparent text-[rgb(249,250,251)] font-bold" disabled />
+              <input
+                value={amount}
+                className="w-full focus:border-0 outline-none bg-transparent text-[rgb(249,250,251)] font-bold"
+                disabled
+              />
               <div className="flex gap-2">
                 <div className="h-6 w-6 rounded-full">
-                  <img src="https://assets.polygon.technology/tokenAssets/usdc.svg" className="w-full h-full" />
+                  <img
+                    src="https://assets.polygon.technology/tokenAssets/usdc.svg"
+                    className="w-full h-full"
+                  />
                 </div>
                 <span className="text-white font-bold">USDC</span>
               </div>
@@ -169,13 +230,14 @@ export default function TransferForm() {
           </div>
           {isConnected ? (
             <LoadingButton
+              loadingPosition="end"
               className="w-full"
               loading={loading}
               variant="contained"
               type="submit"
               disabled={invalidAmount}
             >
-              Approve
+              {transactionStatus || approvalStatus || 'Approve'}
             </LoadingButton>
           ) : (
             <ConnectButton />
@@ -184,7 +246,7 @@ export default function TransferForm() {
       </div>
       {error ? (
         <SnackbarContent
-          className="mt-3 overflow-hidden whitespace-pre-wrap break-all"
+          className="mt-3 overflow-hidden whitespace-pre-wrap break-all max-w-[600px] mx-auto"
           message={`${error.name}: ${error.message}`}
           variant="elevation"
           action={

@@ -17,13 +17,13 @@ class MetaMask extends BaseWallet implements Wallets {
 
   async init() {
     try {
-      const [account] = await window.ethereum.request({ 
-        method: 'eth_requestAccounts' 
+      const [account] = await window.ethereum.request({
+        method: 'eth_requestAccounts'
       })
       this._walletClient = createWalletClient({
         account,
         chain: DEFAULT_CHAIN,
-        transport: custom(window.ethereum),
+        transport: custom(window.ethereum)
       })
       this._chainSet.add(DEFAULT_CHAIN.id)
       walletStore.set(addressAtom, account)

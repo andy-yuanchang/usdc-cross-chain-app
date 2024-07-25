@@ -1,12 +1,9 @@
-import { currentChainAtom, selectedWalletAtom } from '@/atoms/wallet'
 import { IMAGE_PATHS } from '@/constants'
-import useWallet from '@/hooks/useWallet'
 import { getChain } from '@/utils'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import type { SelectChangeEvent } from '@mui/material'
-import { useAtomValue } from 'jotai'
 import useControlledValue from '@/hooks/useControlledValue'
 
 interface SwitchChainProps {

@@ -22,3 +22,9 @@ export type WalletConnectionStatus =
   | 'connecting'
   | 'connected'
   | 'user-rejected'
+
+export type ApprovalStatus =
+  | 'approving'
+  | 'approved'
+  | 'error'
+  | 'waiting for the receipt'

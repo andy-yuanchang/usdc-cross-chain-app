@@ -53,6 +53,10 @@ class PublicClient {
       bigint | undefined
     >
   }
+
+  async getTransactionReceipt(hash: Address) {
+    return await this._client.getTransactionReceipt({ hash })
+  }
 }
 
 export const publicClient = new PublicClient()

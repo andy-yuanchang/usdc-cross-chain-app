@@ -24,8 +24,8 @@ export default function useWallet() {
     }
   }, [address])
 
-  const connect = async (name: string) => {
-    const wallet = getWallet(name)
+  const connect = async (walletName: string) => {
+    const wallet = getWallet(walletName)
     if (!wallet) {
       setError(
         new Error('No wallet detected, please choose a wallet to connect')
@@ -51,8 +51,8 @@ export default function useWallet() {
     }
   }
 
-  const switchChain = async (name: string, chainId: Chain['id']) => {
-    const wallet = getWallet(name)
+  const switchChain = async (walletName: string, chainId: Chain['id']) => {
+    const wallet = getWallet(walletName)
     if (!wallet) {
       setError(
         new Error('No wallet detected, please choose a wallet to connect')
