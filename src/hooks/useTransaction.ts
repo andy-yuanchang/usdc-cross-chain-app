@@ -105,7 +105,7 @@ export default function useTransaction() {
 
       const response = await contract.write.depositForBurn([
         parseUnits(amount, 6),
-        Number(CCTP_DOMAIN_ID[chainId]),
+        CCTP_DOMAIN_ID[chainId],
         addressToBytes32(address),
         USDC_CONTRACT_ADDRESS_MAP[chainName]
       ])
@@ -121,9 +121,7 @@ export default function useTransaction() {
   const getTransactionReceipt = usePersistentCallback(async (hash: Address) => {
     return new Promise((resolve) => {
       let intervalId = setInterval(async () => {
-        console.log(hash)
         const transaction = await publicClient.getTransactionReceipt(hash)
-        console.log(transaction)
         if (transaction) {
           resolve(transaction)
           clearInterval(intervalId)
@@ -206,6 +204,20 @@ export default function useTransaction() {
       return transactionReceipt
     }
   )
+
+  const getTransactionHistory = usePersistentCallback(async () => {
+    const endingBlockNumber = await publicClient.client.getBlockNumber()
+    const startingBlockNumber = endingBlockNumber - BigInt(100)
+    const address = addressToBytes32(walletStore.get(addressAtom)!)
+    for (let i = startingBlockNumber; i <= endingBlockNumber; i++) {
+      const block = await publicClient.client.getBlock({ blockNumber: i })
+      for (const transaction of block.transactions) {
+        if (transaction) {
+          
+        }
+      }
+    }
+  })
 
   return {
     approve,

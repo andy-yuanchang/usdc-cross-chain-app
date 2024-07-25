@@ -17,7 +17,12 @@ class PublicClient {
     }
     this._client = createPublicClient({
       chain: chainId ? getChain(chainId) : DEFAULT_CHAIN,
-      transport: http()
+      transport: http(),
+      batch: {
+        multicall: {
+          wait: 16
+        }
+      }
     })
   }
 
