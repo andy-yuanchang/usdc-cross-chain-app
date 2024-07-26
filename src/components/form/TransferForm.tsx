@@ -33,6 +33,7 @@ interface FormInputs {
 export default function TransferForm() {
   const currentWallet = useAtomValue(selectedWalletAtom)
   const [error, setError] = useAtom(transactionErrorAtom)
+  const [changeChainBeforeApproval, setChangeChainBeforeApproval] = useState(false)
   const [transactionStatus, setTransactionStatus] = useAtom(transactionAtom)
   const [approvalStatus, setApprovalStatus] = useAtom(approvalStatusAtom)
   const {
@@ -44,7 +45,6 @@ export default function TransferForm() {
   } = useTransaction()
   const { account, currentChain } = useAccount()
   const { isConnected, switchChain } = useWallet()
-  const [loading, setLoading] = useState(false)
   const { register, handleSubmit, setValue, watch } = useForm<FormInputs>({
     defaultValues: {
       sourceChain: currentChain?.toString(),
@@ -76,7 +76,7 @@ export default function TransferForm() {
         }
       }
     })()
-  }, [account])
+  }, [account, sourceChain, destinationChain])
 
   useEffect(() => {
     register('sourceChain')
@@ -102,9 +102,12 @@ export default function TransferForm() {
   const onSubmit: SubmitHandler<FormInputs> = async (data) => {
     try {
       setError(null)
-      setLoading(true)
       // step 1
       setApprovalStatus('approving')
+      if (changeChainBeforeApproval) {
+        await switchChain(currentWallet!, +data.sourceChain)
+        setChangeChainBeforeApproval(false)
+      }
       const approveTx = await approve(currentWallet!, String(data.amount))
       setApprovalStatus('waiting for the receipt')
       const response = await getTransactionReceipt(approveTx!)
@@ -130,18 +133,22 @@ export default function TransferForm() {
     } finally {
       setTransactionStatus(null)
       handleClose()
-      setLoading(false)
     }
   }
 
   const handleSourceChange = async (chainId: string) => {
+    if (!!approvalStatus || !!transactionStatus) return
     setValue('sourceChain', chainId)
+    if (+chainId !== currentChain) {
+      setChangeChainBeforeApproval(true)
+    }
     const val = await publicClient.getBalance(account!, +sourceChain)
     const usdc = formatUnits(val as bigint, 6)
     setValue('sourceBalance', usdc.toString())
   }
 
   const handleDestinationChange = async (chaindId: string) => {
+    if (!!approvalStatus || !!transactionStatus) return
     setValue('destinationChain', chaindId)
     const val = await publicClient.getBalance(account!, +destinationBalance)
     const usdc = formatUnits(val as bigint, 6)
@@ -171,6 +178,7 @@ export default function TransferForm() {
                   value={sourceChain}
                   defaultValue={String(currentChain)}
                   onChainChange={handleSourceChange}
+                  disabled={!!approvalStatus || !!transactionStatus}
                 />
               </div>
               <div className="flex gap-2 items-center">
@@ -182,6 +190,7 @@ export default function TransferForm() {
               <input
                 {...register('amount')}
                 className="w-full focus:border-0 outline-none bg-transparent text-[rgb(249,250,251)] font-bold"
+                disabled={!!approvalStatus || !!transactionStatus}
               />
               <div className="flex gap-2">
                 <div className="h-6 w-6 rounded-full">
@@ -204,6 +213,7 @@ export default function TransferForm() {
                   value={destinationChain}
                   defaultValue={String(currentChain)}
                   onChainChange={handleDestinationChange}
+                  disabled={!!approvalStatus || !!transactionStatus}
                 />
               </div>
               <div className="flex gap-2 items-center">
@@ -232,12 +242,12 @@ export default function TransferForm() {
             <LoadingButton
               loadingPosition="end"
               className="w-full"
-              loading={loading}
+              loading={!!transactionStatus || !!approvalStatus}
               variant="contained"
               type="submit"
               disabled={invalidAmount}
             >
-              {transactionStatus || approvalStatus || 'Approve'}
+              {changeChainBeforeApproval ? 'Switch Chain' : transactionStatus || approvalStatus || 'Approve'}
             </LoadingButton>
           ) : (
             <ConnectButton />

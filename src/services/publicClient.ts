@@ -8,26 +8,32 @@ import { getChain } from '@/utils'
 import { http, createPublicClient, type Address, getContract } from 'viem'
 
 class PublicClient {
-  private _client: ReturnType<typeof createPublicClient>
+  private _clientMap: Map<number, ReturnType<typeof createPublicClient>>
 
   constructor() {
     const chainId = walletStore.get(currentChainAtom)
     if (!chainId) {
       walletStore.set(currentChainAtom, DEFAULT_CHAIN.id)
     }
-    this._client = createPublicClient({
+    this._clientMap = new Map()
+    this._clientMap.set(chainId ?? DEFAULT_CHAIN.id, createPublicClient({
       chain: chainId ? getChain(chainId) : DEFAULT_CHAIN,
       transport: http(),
-      batch: {
-        multicall: {
-          wait: 16
-        }
-      }
-    })
+    }))
   }
 
   public get client(): ReturnType<typeof createPublicClient> {
-    return this._client
+    const chainId = walletStore.get(currentChainAtom)
+    if (!chainId) {
+      throw new Error(`Error: when get public client, ${chainId} is 'undefined' or 'null'`)
+    }
+    if (!this._clientMap.has(chainId)) {
+      this._clientMap.set(chainId, createPublicClient({
+        chain: getChain(chainId),
+        transport: http(),
+      }))
+    }
+    return this._clientMap.get(chainId)!
   }
 
   async getBalance(address: Address, id?: number): Promise<bigint | undefined> {
@@ -35,6 +41,7 @@ class PublicClient {
 
     const currentChain = walletStore.get(currentChainAtom)
     const currentChainId = id ? id : currentChain
+    console.log(id, currentChainId)
     if (!currentChainId) throw new UnexpectedError('No Chain detected')
 
     const chain = getChain(currentChainId)
@@ -46,11 +53,20 @@ class PublicClient {
       )
     }
 
+    const usdcContractAddress = USDC_CONTRACT_ADDRESS_MAP[name]
+    if (!usdcContractAddress) {
+      throw new Error(
+        `Error: No USDC contract address found for chain '${name}'`
+      )
+    }
+
+    console.log(this._clientMap.get(chainId))
+
     const contract = getContract({
       abi: ERC_20_ABI,
-      address: USDC_CONTRACT_ADDRESS_MAP[name],
+      address: usdcContractAddress,
       client: {
-        public: publicClient.client
+        public: this._clientMap.get(chainId)!
       }
     })
 
@@ -59,8 +75,8 @@ class PublicClient {
     >
   }
 
-  async getTransactionReceipt(hash: Address) {
-    return await this._client.getTransactionReceipt({ hash })
+  async getTransactionReceipt(hash: Address, chainId: number) {
+    return await this._clientMap.get(chainId)!.getTransactionReceipt({ hash })
   }
 }
 

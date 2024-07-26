@@ -3,21 +3,20 @@ import { getChain } from '@/utils'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
-import type { SelectChangeEvent } from '@mui/material'
+import type { SelectChangeEvent, SelectProps } from '@mui/material'
 import useControlledValue from '@/hooks/useControlledValue'
 
-interface SwitchChainProps {
+interface SwitchChainProps extends Omit<SelectProps, 'defaultValue'> {
   defaultValue: string
-  className?: string
   value?: string
   onChainChange?: (chainId: string) => void
 }
 
 export default function SwitchChain({
-  className,
   value,
   defaultValue,
-  onChainChange
+  onChainChange,
+  ...rest
 }: SwitchChainProps) {
   const [val, setVal] = useControlledValue<string>({
     value,
@@ -30,7 +29,7 @@ export default function SwitchChain({
   }
 
   return (
-    <Select value={val} onChange={handleSwitchChain} className={className}>
+    <Select value={val} onChange={handleSwitchChain} {...rest}>
       {Object.entries(IMAGE_PATHS).map(([id, path]) => (
         <MenuItem value={id} key={id}>
           <ListItemIcon>
