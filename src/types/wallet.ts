@@ -15,7 +15,7 @@ export type SupportedChains = (typeof SUPPORTED_CHAINS_DETAILS)[number]['name']
 
 export type SupportedChainIds = (typeof SUPPORTED_CHAINS_DETAILS)[number]['id']
 
-export type TransactionStatus = 'pending' | 'confirmed' | 'error'
+export type TransactionStatus = 'pending' | 'confirmed' | 'waiting for the receipt' | 'error'
 
 export type WalletConnectionStatus =
   | 'disconnected'

@@ -1,5 +1,5 @@
+import { Alert, Button, Dialog, Link, OutlinedInput, Select } from './components'
 import { palette } from './palette'
-import { Dialog, Button, Link, Select, OutlinedInput } from './components'
 import { typography } from './typography'
 
 import type { ThemeOptions } from '@mui/material'
@@ -12,6 +12,7 @@ export const theme: ThemeOptions | undefined = {
     ...Button,
     ...Link,
     ...Select,
-    ...OutlinedInput
+    ...OutlinedInput,
+    ...Alert
   }
 }

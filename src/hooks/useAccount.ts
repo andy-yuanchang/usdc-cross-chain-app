@@ -10,6 +10,7 @@ export default function useAccount() {
   const account = useAtomValue(addressAtom)
 
   useEffect(() => {
+    console.log(currentChain)
     if (currentChain && account) {
       ;(async () => {
         const val = await publicClient.getBalance(account)

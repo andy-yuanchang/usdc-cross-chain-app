@@ -1,17 +1,15 @@
-import { IMAGE_PATHS } from '@/constants'
+import { selectedWalletAtom } from '@/atoms/wallet'
+import SwitchChain from '@/components/form/SwitchChain'
+import WalletMenu from '@/components/wallet/WalletMenu'
 import useAccount from '@/hooks/useAccount'
 import { useModalState } from '@/hooks/useModalState'
 import useWallet from '@/hooks/useWallet'
+import { shortenAddress } from '@/utils'
+import { Avatar, Typography } from '@mui/material'
 import Button from '@mui/material/Button'
-import WalletMenu from '@/components/wallet/WalletMenu'
-import Select, { SelectChangeEvent } from '@mui/material/Select'
 import Link from '@mui/material/Link'
-import { NavLink } from 'react-router-dom'
-import { Avatar, ListItemIcon, MenuItem, Typography } from '@mui/material'
-import { getChain, shortenAddress } from '@/utils'
 import { useAtomValue } from 'jotai'
-import { selectedWalletAtom } from '@/atoms/wallet'
-import SwitchChain from '@/components/form/SwitchChain'
+import { NavLink } from 'react-router-dom'
 
 export default function NavBar() {
   const { isConnected, switchChain } = useWallet()

@@ -1,4 +1,6 @@
+import { MESSAGE_TRANSMITTER_ABI } from '@/abis/MessageTransmitter'
 import { TOKEN_MESSENGER_ABI } from '@/abis/TokenMessenger'
+import { ERC_20_ABI } from '@/abis/erc20'
 import { walletStore } from '@/atoms/store'
 import { transactionErrorAtom } from '@/atoms/transaction'
 import { addressAtom, currentChainAtom } from '@/atoms/wallet'
@@ -9,6 +11,7 @@ import {
   UnexpectedError,
   USDC_CONTRACT_ADDRESS_MAP
 } from '@/constants'
+import usePersistentCallback from '@/hooks/usePersistentCallback'
 import { publicClient } from '@/services/publicClient'
 import type { SupportedChainIds, SupportedChains } from '@/types/wallet'
 import { addressToBytes32, getChain, getWallet } from '@/utils'
@@ -23,9 +26,6 @@ import {
   toHex,
   type TransactionReceipt
 } from 'viem'
-import usePersistentCallback from '@/hooks/usePersistentCallback'
-import { MESSAGE_TRANSMITTER_ABI } from '@/abis/MessageTransmitter'
-import { ERC_20_ABI } from '@/abis/erc20'
 
 export default function useTransaction() {
   const setError = useSetAtom(transactionErrorAtom)
@@ -90,7 +90,7 @@ export default function useTransaction() {
   )
 
   const depositForBurn = usePersistentCallback(
-    async (name: string, amount: string) => {
+    async (name: string, amount: string, destinationChain: SupportedChainIds) => {
       const wallet = getWallet(name)
       if (!wallet) {
         setError(
@@ -132,15 +132,9 @@ export default function useTransaction() {
         )
       }
 
-      console.log({
-        amount: parseUnits(amount, 6),
-        destinationDomain: CCTP_DOMAIN_ID[chainId],
-        address: addressToBytes32(address),
-        burnToken: usdcContractAddress
-      })
       const response = await contract.write.depositForBurn([
-        parseUnits(amount, 6),
-        CCTP_DOMAIN_ID[chainId],
+        amount,
+        CCTP_DOMAIN_ID[destinationChain],
         addressToBytes32(address),
         usdcContractAddress
       ])
@@ -153,7 +147,7 @@ export default function useTransaction() {
     }
   )
 
-  const getTransactionReceipt = usePersistentCallback(async (hash: Address, chainId?: number) => {
+  const getTransactionReceipt = usePersistentCallback(async (hash: Address) => {
     const chain = getChain(walletStore.get(currentChainAtom)!)
     if (!chain) {
       throw new Error(
@@ -161,9 +155,9 @@ export default function useTransaction() {
       )
     }
     return new Promise((resolve) => {
-      let intervalId = setInterval(async () => {
-        console.log('getTransactionReceipt', chainId ?? chain?.id, hash)
-        const transaction = await publicClient.getTransactionReceipt(hash, chainId ? chainId : chain?.id)
+      const intervalId = setInterval(async () => {
+        console.log('getTransactionReceipt', chain?.id, hash)
+        const transaction = await publicClient.getTransactionReceipt(hash, chain?.id)
         if (transaction) {
           resolve(transaction)
           clearInterval(intervalId)
@@ -210,21 +204,12 @@ export default function useTransaction() {
         return
       }
 
-      const chain = getChain(walletStore.get(currentChainAtom)!)
-      const chainName = chain?.name as SupportedChains
-      const chainId = chain?.id as SupportedChainIds
-      const address = walletStore.get(addressAtom)
-      if (!chainName || !chainId || !address) {
-        throw new Error(
-          `Error when receiving message, Chain Name: '${chainName}', Chain ID: '${chainId}', Account: '${address}'`
-        )
-      }
-
+      const destinationChainName = getChain(destinationChainId)?.name as SupportedChains
       const messageTransmitterAddress =
-        MESSAGE_TRANSMITTER_ADDRESS_MAP[chainName]
+        MESSAGE_TRANSMITTER_ADDRESS_MAP[destinationChainName]
       if (!messageTransmitterAddress) {
         throw new Error(
-          `Error: No MessageTransmitter address found for chain '${chainName}'`
+          `Error: No MessageTransmitter address found for chain '${destinationChainName}'`
         )
       }
 
@@ -250,24 +235,24 @@ export default function useTransaction() {
       // polling receipt
       const transactionReceipt = (await getTransactionReceipt(
         receiveTx,
-        destinationChainId
       )) as TransactionReceipt
       return transactionReceipt
     }
   )
 
-  const getTransactionHistory = usePersistentCallback(async () => {
-    const endingBlockNumber = await publicClient.client.getBlockNumber()
-    const startingBlockNumber = endingBlockNumber - BigInt(100)
-    const address = addressToBytes32(walletStore.get(addressAtom)!)
-    for (let i = startingBlockNumber; i <= endingBlockNumber; i++) {
-      const block = await publicClient.client.getBlock({ blockNumber: i })
-      for (const transaction of block.transactions) {
-        if (transaction) {
-        }
-      }
-    }
-  })
+  // // TODO: implement transaction history getter
+  // const getTransactionHistory = usePersistentCallback(async () => {
+  //   const endingBlockNumber = await publicClient.client.getBlockNumber()
+  //   const startingBlockNumber = endingBlockNumber - BigInt(100)
+  //   const address = addressToBytes32(walletStore.get(addressAtom)!)
+  //   for (let i = startingBlockNumber; i <= endingBlockNumber; i++) {
+  //     const block = await publicClient.client.getBlock({ blockNumber: i })
+  //     for (const transaction of block.transactions) {
+  //       if (transaction) {
+  //       }
+  //     }
+  //   }
+  // })
 
   return {
     approve,

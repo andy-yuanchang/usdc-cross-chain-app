@@ -1,26 +1,26 @@
-import { type SubmitHandler, useForm } from 'react-hook-form'
-import Typography from '@mui/material/Typography'
-import { publicClient } from '@/services/publicClient'
-import useAccount from '@/hooks/useAccount'
-import { useEffect, useMemo, useState } from 'react'
-import { formatUnits } from 'viem'
-import { DEFAULT_CHAIN } from '@/constants'
-import SwitchChain from '@/components/form/SwitchChain'
-import LoadingButton from '@mui/lab/LoadingButton'
-import useTransaction from '@/hooks/useTransaction'
-import { useAtom, useAtomValue } from 'jotai'
-import { selectedWalletAtom } from '@/atoms/wallet'
-import useWallet from '@/hooks/useWallet'
-import ConnectButton from '@/components/wallet/ConnectButton'
 import {
   approvalStatusAtom,
   transactionAtom,
   transactionErrorAtom
 } from '@/atoms/transaction'
-import SnackbarContent from '@mui/material/SnackbarContent'
-import Button from '@mui/material/Button'
-import { getErrorMessage } from '@/utils'
+import { selectedWalletAtom } from '@/atoms/wallet'
+import SwitchChain from '@/components/form/SwitchChain'
+import ConnectButton from '@/components/wallet/ConnectButton'
+import { DEFAULT_CHAIN } from '@/constants'
+import useAccount from '@/hooks/useAccount'
+import useTransaction from '@/hooks/useTransaction'
+import useWallet from '@/hooks/useWallet'
 import { attestationClient } from '@/services/attestationClient'
+import { publicClient } from '@/services/publicClient'
+import { SupportedChainIds } from '@/types/wallet'
+import { getErrorMessage } from '@/utils'
+import LoadingButton from '@mui/lab/LoadingButton'
+import Typography from '@mui/material/Typography'
+import { useAtom, useAtomValue } from 'jotai'
+import { useEffect, useMemo, useState } from 'react'
+import { type SubmitHandler, useForm } from 'react-hook-form'
+import { formatUnits, TransactionReceipt } from 'viem'
+import ToastMessage from '../common/ToastMessage'
 
 interface FormInputs {
   sourceChain: string
@@ -33,6 +33,8 @@ interface FormInputs {
 export default function TransferForm() {
   const currentWallet = useAtomValue(selectedWalletAtom)
   const [error, setError] = useAtom(transactionErrorAtom)
+  // TODO: refactor the progress state management, now it uses a handy way to handle it
+  const [receivedTxReceipt, setReceivedTxReceipt] = useState<TransactionReceipt | null>(null)
   const [changeChainBeforeApproval, setChangeChainBeforeApproval] = useState(false)
   const [transactionStatus, setTransactionStatus] = useAtom(transactionAtom)
   const [approvalStatus, setApprovalStatus] = useAtom(approvalStatusAtom)
@@ -62,7 +64,7 @@ export default function TransferForm() {
   const amount = watch('amount')
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       if (account) {
         const [source, dest] = await Promise.allSettled([
           publicClient.getBalance(account!, +sourceChain),
@@ -101,6 +103,7 @@ export default function TransferForm() {
 
   const onSubmit: SubmitHandler<FormInputs> = async (data) => {
     try {
+      setReceivedTxReceipt(null)
       setError(null)
       // step 1
       setApprovalStatus('approving')
@@ -110,10 +113,10 @@ export default function TransferForm() {
       }
       const approveTx = await approve(currentWallet!, String(data.amount))
       setApprovalStatus('waiting for the receipt')
-      const response = await getTransactionReceipt(approveTx!)
+      await getTransactionReceipt(approveTx!)
       setApprovalStatus('approved')
       // step 2
-      const burnTx = await depositForBurn(currentWallet!, String(data.amount))
+      const burnTx = await depositForBurn(currentWallet!, String(data.amount), +data.destinationChain as SupportedChainIds)
       // step 3
       setApprovalStatus('waiting for the receipt')
       const { messageHash, messageBytes } = await getMessageHash(burnTx!)
@@ -122,16 +125,17 @@ export default function TransferForm() {
       const attestationSignature =
         await attestationClient.getAttestation(messageHash)
       // step 5
-      await switchChain(currentWallet!, +data.destinationChain)
-      const receiveTxReceipt = await receiveMessage(currentWallet!, {
+      setTransactionStatus('waiting for the receipt')
+      const receipt = await receiveMessage(currentWallet!, {
         messageBytes,
-        attestationSignature
+        attestationSignature,
+        destinationChainId: +data.destinationChain
       })
       setTransactionStatus('confirmed')
+      setReceivedTxReceipt(receipt)
     } catch (error: unknown) {
       setError(new Error(getErrorMessage(error)))
     } finally {
-      setTransactionStatus(null)
       handleClose()
     }
   }
@@ -142,7 +146,7 @@ export default function TransferForm() {
     if (+chainId !== currentChain) {
       setChangeChainBeforeApproval(true)
     }
-    const val = await publicClient.getBalance(account!, +sourceChain)
+    const val = await publicClient.getBalance(account!, +chainId)
     const usdc = formatUnits(val as bigint, 6)
     setValue('sourceBalance', usdc.toString())
   }
@@ -150,7 +154,7 @@ export default function TransferForm() {
   const handleDestinationChange = async (chaindId: string) => {
     if (!!approvalStatus || !!transactionStatus) return
     setValue('destinationChain', chaindId)
-    const val = await publicClient.getBalance(account!, +destinationBalance)
+    const val = await publicClient.getBalance(account!, +chaindId)
     const usdc = formatUnits(val as bigint, 6)
     setValue('destinationBalance', usdc.toString())
   }
@@ -175,7 +179,6 @@ export default function TransferForm() {
                   From
                 </Typography>
                 <SwitchChain
-                  value={sourceChain}
                   defaultValue={String(currentChain)}
                   onChainChange={handleSourceChange}
                   disabled={!!approvalStatus || !!transactionStatus}
@@ -210,7 +213,6 @@ export default function TransferForm() {
                   To
                 </Typography>
                 <SwitchChain
-                  value={destinationChain}
                   defaultValue={String(currentChain)}
                   onChainChange={handleDestinationChange}
                   disabled={!!approvalStatus || !!transactionStatus}
@@ -255,22 +257,15 @@ export default function TransferForm() {
         </form>
       </div>
       {error ? (
-        <SnackbarContent
-          className="mt-3 overflow-hidden whitespace-pre-wrap break-all max-w-[600px] mx-auto"
+        <ToastMessage
+          defaultValue={!!error}
           message={`${error.name}: ${error.message}`}
-          variant="elevation"
-          action={
-            <Button
-              variant="outlined"
-              color="secondary"
-              size="small"
-              onClick={() => setError(null)}
-            >
-              {'Close'}
-            </Button>
-          }
+          severity="error"
         />
       ) : null}
+      {
+        receivedTxReceipt ? <ToastMessage severity="success" defaultValue={!!receivedTxReceipt} message={JSON.stringify(receivedTxReceipt, (_, value) => (typeof value === 'bigint' ? value.toString() : value), 2)} /> : null
+      }
     </>
   )
 }

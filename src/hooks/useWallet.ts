@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
-import type { WalletConnectionStatus } from '@/types/wallet'
-import { useAtom, useAtomValue } from 'jotai'
-import { addressAtom, walletErrorAtom } from '@/atoms/wallet'
+import { walletStore } from '@/atoms/store'
+import { addressAtom, currentChainAtom, walletErrorAtom } from '@/atoms/wallet'
 import {
   WalletConnectionError,
   WalletSwitchChainError
 } from '@/constants/errors'
+import type { WalletConnectionStatus } from '@/types/wallet'
 import { getErrorMessage, getWallet } from '@/utils'
+import { useAtom, useAtomValue } from 'jotai'
+import { useEffect, useState } from 'react'
 import type { Chain } from 'viem'
 
 export default function useWallet() {
@@ -37,7 +38,7 @@ export default function useWallet() {
       setConnectionStatus('connecting')
       await wallet.connect()
       setConnectionStatus('connected')
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (
         error instanceof Error &&
         (error.message.includes('User rejected the request') ||
@@ -62,7 +63,9 @@ export default function useWallet() {
     try {
       setError(null)
       await wallet.switchChain(chainId)
+      walletStore.set(currentChainAtom, chainId)
     } catch (error) {
+      console.log(error)
       setError(new WalletSwitchChainError(getErrorMessage(error)))
     }
   }

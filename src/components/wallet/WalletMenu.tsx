@@ -1,25 +1,25 @@
-import Dialog, { type DialogProps } from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import List from '@mui/material/List'
-import ListItem from '@mui/material/ListItem'
-import ListItemButton from '@mui/material/ListItemButton'
-import ListItemAvatar from '@mui/material/ListItemAvatar'
-import ListItemText from '@mui/material/ListItemText'
+import { selectedWalletAtom } from '@/atoms/wallet'
+import { SUPPORTED_WALLETS } from '@/constants'
+import useWallet from '@/hooks/useWallet'
+import { SupportedWallets } from '@/types/wallet'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import CloseIcon from '@mui/icons-material/close'
 import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
+import Dialog from '@mui/material/Dialog'
 import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import IconButton from '@mui/material/IconButton'
-import CloseIcon from '@mui/icons-material/close'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import { SUPPORTED_WALLETS } from '@/constants'
-import { SupportedWallets } from '@/types/wallet'
+import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
+import ListItemAvatar from '@mui/material/ListItemAvatar'
+import ListItemButton from '@mui/material/ListItemButton'
+import ListItemText from '@mui/material/ListItemText'
+import Typography from '@mui/material/Typography'
 import { useAtom } from 'jotai'
-import { selectedWalletAtom } from '@/atoms/wallet'
 import { useEffect, useMemo } from 'react'
-import useWallet from '@/hooks/useWallet'
 
 interface WalletMenuProps {
   open: boolean
@@ -57,7 +57,7 @@ export default function WalletMenu({ open, onClose }: WalletMenuProps) {
   return (
     <Dialog onClose={handleClose} open={open} maxWidth="xs" fullWidth>
       {connectionStatus === 'connecting' ||
-      connectionStatus === 'user-rejected' ? (
+        connectionStatus === 'user-rejected' ? (
         <IconButton
           onClick={cancel}
           sx={{
@@ -85,7 +85,7 @@ export default function WalletMenu({ open, onClose }: WalletMenuProps) {
       </IconButton>
       <DialogContent className="max-h-[454px] overflow-y-auto">
         {connectionStatus === 'connecting' ||
-        connectionStatus === 'user-rejected' ? (
+          connectionStatus === 'user-rejected' ? (
           <Box className="flex flex-col justify-center items-center min-h-[396px] text-center">
             <Avatar
               src={walletImgPath}

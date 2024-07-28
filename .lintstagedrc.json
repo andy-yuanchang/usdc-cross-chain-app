@@ -1,0 +1,5 @@
+{
+  "*.{js,ts,tsx}": "eslint --fix",
+  "*.{js,json,ts,tsx,scss,css,md,mdx}": "prettier --write --ignore-unknown",
+  "*.{ts,tsx}": "tsc --pretty --noEmit"
+}

@@ -5,6 +5,7 @@ import type { Wallets } from '@/types/wallet'
 import { getChain, getErrorMessage } from '@/utils'
 import { type Chain, createWalletClient, custom } from 'viem'
 import { BaseWallet } from './baseWallet'
+import { UnexpectedError } from '@/constants'
 
 class MetaMask extends BaseWallet implements Wallets {
   constructor() {
@@ -19,12 +20,12 @@ class MetaMask extends BaseWallet implements Wallets {
       const [account] = await window.ethereum.request({
         method: 'eth_requestAccounts'
       })
-      this._clientMap!.set(DEFAULT_CHAIN.id, createWalletClient({
+      const currentChain = walletStore.get(currentChainAtom)
+      this._clientMap!.set(currentChain ?? DEFAULT_CHAIN.id, createWalletClient({
         account,
-        chain: DEFAULT_CHAIN,
+        chain: currentChain ? getChain(currentChain) : DEFAULT_CHAIN,
         transport: custom(window.ethereum)
       }))
-      walletStore.set(currentChainAtom, DEFAULT_CHAIN?.id)
       walletStore.set(addressAtom, account)
     } catch (error: unknown) {
       throw new Error(
@@ -54,15 +55,19 @@ class MetaMask extends BaseWallet implements Wallets {
       throw new Error(`Chain id ${chainId} is not supported`)
     }
 
-    if (!this._clientMap!.has(chainId)) {
+    if (!this._clientMap) {
+      throw new UnexpectedError(`Error: client map has not been initialized`)
+    }
+
+    if (!this._clientMap.has(chainId)) {
       try {
-        this._clientMap!.set(chainId, createWalletClient({
+        const account = walletStore.get(addressAtom)
+        this._clientMap.set(chainId, createWalletClient({
           account: account!,
           chain: getChain(chainId)!,
           transport: custom(window.ethereum)
         }))
-        await this._clientMap.get(chainId).addChain({ chain: getChain(chainId)! })
-        const account = walletStore.get(addressAtom)
+        await this._clientMap.get(chainId)?.addChain({ chain: getChain(chainId)! })
       } catch (error: unknown) {
         throw new Error(
           `${this._name} add chain ${chainId} failed, ${getErrorMessage(error)}`
@@ -71,7 +76,7 @@ class MetaMask extends BaseWallet implements Wallets {
     }
 
     try {
-      await this._clientMap.get(chainId).switchChain({ id: chainId })
+      await this._clientMap.get(chainId)?.switchChain({ id: chainId })
       walletStore.set(currentChainAtom, chainId)
     } catch (error: unknown) {
       throw new Error(
